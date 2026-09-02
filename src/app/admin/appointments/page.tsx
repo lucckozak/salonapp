@@ -1,0 +1,175 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Plus, X } from "lucide-react";
+import { useStore } from "@/lib/store";
+import type { AppointmentStatus } from "@/lib/types";
+import { STATUS_LABELS } from "@/lib/types";
+import { fmt, isSameDay, toDate } from "@/lib/time";
+import { fullName } from "@/lib/utils";
+import { PageHeading } from "@/components/layout/dashboard-shell";
+import { Button } from "@/components/ui/button";
+import { Field, Input, Select } from "@/components/ui/field";
+import { AppointmentsTable } from "@/components/appointments/appointments-table";
+import { AppointmentEditorDialog } from "@/components/appointments/appointment-editor-dialog";
+
+export default function AdminAppointmentsPage() {
+  const { db } = useStore();
+  const [editorId, setEditorId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const [date, setDate] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [serviceId, setServiceId] = useState("");
+  const [status, setStatus] = useState<AppointmentStatus | "">("");
+  const [q, setQ] = useState("");
+  const [range, setRange] = useState<"all" | "upcoming" | "past">("upcoming");
+
+  const filtered = useMemo(() => {
+    const now = new Date();
+    return db.appointments
+      .filter((a) => {
+        if (date && !isSameDay(toDate(a.start), new Date(`${date}T00:00`)))
+          return false;
+        if (employeeId && a.employeeId !== employeeId) return false;
+        if (serviceId && a.serviceId !== serviceId) return false;
+        if (status && a.status !== status) return false;
+        if (range === "upcoming" && toDate(a.start) < now && !date) return false;
+        if (range === "past" && toDate(a.start) >= now && !date) return false;
+        if (q) {
+          const c = db.users.find((u) => u.id === a.customerId);
+          const hay = `${c ? fullName(c) : ""} ${c?.email ?? ""} ${
+            c?.phone ?? ""
+          }`.toLowerCase();
+          if (!hay.includes(q.toLowerCase())) return false;
+        }
+        return true;
+      })
+      .sort((a, b) =>
+        range === "past"
+          ? +toDate(b.start) - +toDate(a.start)
+          : +toDate(a.start) - +toDate(b.start),
+      );
+  }, [db, date, employeeId, serviceId, status, q, range]);
+
+  const hasFilters =
+    date || employeeId || serviceId || status || q || range !== "upcoming";
+
+  return (
+    <div>
+      <PageHeading
+        title="Appointments"
+        description={`${filtered.length} matching`}
+        action={
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus size={15} /> New appointment
+          </Button>
+        }
+      />
+
+      <div className="mb-5 grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Field label="Search customer">
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Name, email or phone"
+          />
+        </Field>
+        <Field label="Date">
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </Field>
+        <Field label="Range">
+          <Select
+            value={range}
+            onChange={(e) => setRange(e.target.value as typeof range)}
+          >
+            <option value="upcoming">Upcoming</option>
+            <option value="past">Past</option>
+            <option value="all">All time</option>
+          </Select>
+        </Field>
+        <Field label="Specialist">
+          <Select
+            value={employeeId}
+            onChange={(e) => setEmployeeId(e.target.value)}
+          >
+            <option value="">All specialists</option>
+            {db.employees.map((e) => {
+              const u = db.users.find((x) => x.id === e.userId)!;
+              return (
+                <option key={e.id} value={e.id}>
+                  {fullName(u)}
+                </option>
+              );
+            })}
+          </Select>
+        </Field>
+        <Field label="Service">
+          <Select
+            value={serviceId}
+            onChange={(e) => setServiceId(e.target.value)}
+          >
+            <option value="">All services</option>
+            {db.services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Status">
+          <Select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as AppointmentStatus | "")}
+          >
+            <option value="">Any status</option>
+            {(
+              Object.keys(STATUS_LABELS) as AppointmentStatus[]
+            ).map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABELS[s]}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        {hasFilters ? (
+          <div className="flex items-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setDate("");
+                setEmployeeId("");
+                setServiceId("");
+                setStatus("");
+                setQ("");
+                setRange("upcoming");
+              }}
+            >
+              <X size={14} /> Clear filters
+            </Button>
+          </div>
+        ) : null}
+      </div>
+
+      <AppointmentsTable
+        appointments={filtered}
+        onRowClick={(id) => setEditorId(id)}
+      />
+
+      <AppointmentEditorDialog
+        open={!!editorId}
+        appointmentId={editorId}
+        onClose={() => setEditorId(null)}
+      />
+      <AppointmentEditorDialog
+        open={creating}
+        onClose={() => setCreating(false)}
+      />
+    </div>
+  );
+}

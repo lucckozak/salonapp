@@ -130,6 +130,14 @@ h1, h2, h3, h4 {
   animation: fade-in 0.35s ease both;
 }
 
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes shimmer {
   100% { transform: translateX(100%); }
 }

@@ -76,7 +76,7 @@ export default function StaffDashboard() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
         <Stat
           label="Today"
           value={stats.todayCount}
@@ -112,7 +112,7 @@ export default function StaffDashboard() {
         />
       </div>
 
-      <h2 className="mb-4 mt-10 text-lg font-medium text-foreground">
+      <h2 className="mb-3 mt-8 text-base font-medium text-foreground sm:text-lg">
         Today's schedule
       </h2>
       {stats.today.length === 0 ? (

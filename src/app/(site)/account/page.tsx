@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarCheck, Clock3, Wallet } from "lucide-react";
+import { CalendarCheck, Clock3, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useStore } from "@/lib/store";
 import { customerStats } from "@/lib/selectors";
-import { formatPrice } from "@/lib/utils";
 import { fmt } from "@/lib/time";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
@@ -41,14 +40,16 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
         <Stat
+          compact
           label="Visits"
           value={stats.completed}
-          hint={`${stats.total} booked all-time`}
+          hint={`${stats.total} booked`}
           icon={<CalendarCheck size={15} />}
         />
         <Stat
+          compact
           label="Upcoming"
           value={stats.upcoming}
           tone="info"
@@ -56,14 +57,20 @@ export default function ProfilePage() {
           hint={
             stats.lastVisit
               ? `Last visit ${fmt.mediumDate(stats.lastVisit)}`
-              : "No visits yet"
+              : "None booked yet"
           }
         />
         <Stat
-          label="Lifetime spend"
-          value={formatPrice(stats.spend, db.settings.currency)}
+          compact
+          label="Member since"
+          value={fmt.monthYear(user.createdAt)}
           tone="accent"
-          icon={<Wallet size={15} />}
+          icon={<Sparkles size={15} />}
+          hint={
+            stats.favouriteService
+              ? `Go-to: ${stats.favouriteService}`
+              : "Welcome anytime"
+          }
         />
       </div>
 

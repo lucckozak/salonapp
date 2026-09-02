@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, SlidersHorizontal, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { AppointmentStatus } from "@/lib/types";
 import { STATUS_LABELS } from "@/lib/types";
-import { fmt, isSameDay, toDate } from "@/lib/time";
-import { fullName } from "@/lib/utils";
+import { isSameDay, toDate } from "@/lib/time";
+import { cn, fullName } from "@/lib/utils";
 import { PageHeading } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -24,6 +24,23 @@ export default function AdminAppointmentsPage() {
   const [status, setStatus] = useState<AppointmentStatus | "">("");
   const [q, setQ] = useState("");
   const [range, setRange] = useState<"all" | "upcoming" | "past">("upcoming");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const activeCount =
+    (date ? 1 : 0) +
+    (employeeId ? 1 : 0) +
+    (serviceId ? 1 : 0) +
+    (status ? 1 : 0) +
+    (range !== "upcoming" ? 1 : 0);
+
+  function clearAll() {
+    setDate("");
+    setEmployeeId("");
+    setServiceId("");
+    setStatus("");
+    setQ("");
+    setRange("upcoming");
+  }
 
   const filtered = useMemo(() => {
     const now = new Date();
@@ -67,14 +84,18 @@ export default function AdminAppointmentsPage() {
         }
       />
 
-      <div className="mb-5 grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Field label="Search customer">
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Name, email or phone"
-          />
-        </Field>
+      <div className="mb-5 rounded-2xl border border-border bg-surface p-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Field label="Search customer">
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Name, email or phone"
+            />
+          </Field>
+          <div
+            className={cn("contents", !showFilters && "hidden sm:contents")}
+          >
         <Field label="Date">
           <Input
             type="date"
@@ -136,24 +157,36 @@ export default function AdminAppointmentsPage() {
             ))}
           </Select>
         </Field>
-        {hasFilters ? (
-          <div className="flex items-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setDate("");
-                setEmployeeId("");
-                setServiceId("");
-                setStatus("");
-                setQ("");
-                setRange("upcoming");
-              }}
-            >
-              <X size={14} /> Clear filters
-            </Button>
           </div>
-        ) : null}
+          {hasFilters ? (
+            <div className="hidden items-end sm:flex">
+              <Button variant="ghost" size="sm" onClick={clearAll}>
+                <X size={14} /> Clear filters
+              </Button>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2 sm:hidden">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters((v) => !v)}
+          >
+            <SlidersHorizontal size={14} />
+            {showFilters ? "Hide filters" : "Filters"}
+            {activeCount > 0 ? (
+              <span className="ml-0.5 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                {activeCount}
+              </span>
+            ) : null}
+          </Button>
+          {hasFilters ? (
+            <Button variant="ghost" size="sm" onClick={clearAll}>
+              <X size={14} /> Clear
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <AppointmentsTable

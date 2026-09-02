@@ -35,7 +35,7 @@ import { MiniCalendar } from "./mini-calendar";
 type Phase = "arrange" | "details" | "confirm";
 const PHASES: { id: Phase; label: string }[] = [
   { id: "arrange", label: "Arrange" },
-  { id: "details", label: "Your details" },
+  { id: "details", label: "Details" },
   { id: "confirm", label: "Confirm" },
 ];
 
@@ -784,11 +784,11 @@ function PhaseNav({
 }) {
   const idx = PHASES.findIndex((p) => p.id === phase);
   return (
-    <ol className="flex items-center gap-3">
+    <ol className="flex items-center gap-2 sm:gap-3">
       {PHASES.map((p, i) => {
         const state = i < idx ? "done" : i === idx ? "current" : "todo";
         return (
-          <li key={p.id} className="flex flex-1 items-center gap-3">
+          <li key={p.id} className="flex flex-1 items-center gap-2 sm:gap-3">
             <button
               onClick={() => (i <= idx ? onJump(p.id) : undefined)}
               disabled={i > idx}
@@ -796,7 +796,7 @@ function PhaseNav({
             >
               <span
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors",
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors",
                   state === "done"
                     ? "bg-primary text-primary-foreground"
                     : state === "current"
@@ -808,7 +808,8 @@ function PhaseNav({
               </span>
               <span
                 className={cn(
-                  "text-xs font-medium sm:text-sm",
+                  "whitespace-nowrap text-xs font-medium sm:text-sm",
+                  i === idx ? "inline" : "hidden sm:inline",
                   i <= idx ? "text-foreground" : "text-muted",
                 )}
               >

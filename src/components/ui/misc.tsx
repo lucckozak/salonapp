@@ -56,7 +56,7 @@ export function Segmented<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex rounded-full border border-border bg-surface-sunken p-1",
+        "no-scrollbar flex max-w-full gap-0.5 overflow-x-auto rounded-full border border-border bg-surface-sunken p-1",
         className,
       )}
     >
@@ -65,8 +65,8 @@ export function Segmented<T extends string>({
           key={o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-full font-medium transition-colors",
-            size === "sm" ? "px-3 py-1 text-xs" : "px-4 py-1.5 text-sm",
+            "shrink-0 whitespace-nowrap rounded-full font-medium transition-colors",
+            size === "sm" ? "px-2.5 py-1 text-xs" : "px-3.5 py-1.5 text-[13px] sm:text-sm",
             value === o.value
               ? "bg-surface text-foreground shadow-[var(--shadow-card)]"
               : "text-muted hover:text-foreground",
@@ -131,12 +131,15 @@ export function Stat({
   hint,
   icon,
   tone = "primary",
+  compact = false,
 }: {
   label: string;
   value: React.ReactNode;
   hint?: string;
   icon?: React.ReactNode;
   tone?: "primary" | "success" | "info" | "accent" | "warning";
+  /** tighter, iconless on mobile — for dense 3-up rows */
+  compact?: boolean;
 }) {
   const toneClass = {
     primary: "bg-primary-soft text-primary",
@@ -146,14 +149,24 @@ export function Stat({
     warning: "bg-warning-soft text-warning",
   }[tone];
 
+  const longText = typeof value === "string" && value.length > 4;
+
   return (
-    <div className="rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-card)]">
-      <div className="flex items-center justify-between">
-        <p className="text-[13px] font-medium text-muted">{label}</p>
+    <div className="rounded-2xl border border-border bg-surface p-3 shadow-[var(--shadow-card)] sm:p-5">
+      <div className="flex items-start justify-between gap-1.5">
+        <p
+          className={cn(
+            "text-xs font-medium text-muted sm:text-[13px]",
+            compact ? "leading-tight" : "truncate",
+          )}
+        >
+          {label}
+        </p>
         {icon ? (
           <span
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full",
+              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full sm:h-8 sm:w-8",
+              compact && "hidden sm:flex",
               toneClass,
             )}
           >
@@ -161,10 +174,26 @@ export function Stat({
           </span>
         ) : null}
       </div>
-      <p className="mt-3 font-serif text-3xl font-medium text-foreground">
+      <p
+        className={cn(
+          "mt-1 font-serif font-medium text-foreground sm:mt-3",
+          longText
+            ? "text-base leading-tight sm:text-xl"
+            : "text-xl sm:text-3xl",
+        )}
+      >
         {value}
       </p>
-      {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
+      {hint ? (
+        <p
+          className={cn(
+            "mt-0.5 text-[11px] text-muted sm:mt-1 sm:line-clamp-2 sm:text-xs",
+            compact ? "line-clamp-2" : "line-clamp-1",
+          )}
+        >
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }

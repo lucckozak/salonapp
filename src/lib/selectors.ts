@@ -104,6 +104,19 @@ export function customerStats(db: Database, customerId: string) {
   const last = [...completed].sort(
     (a, b) => +toDate(b.start) - +toDate(a.start),
   )[0];
+
+  // most-booked treatment (completed or upcoming), for a friendly profile stat
+  const counts = new Map<string, number>();
+  for (const a of all) {
+    if (a.status === "CANCELLED") continue;
+    counts.set(a.serviceId, (counts.get(a.serviceId) ?? 0) + 1);
+  }
+  const topServiceId = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const favouriteService =
+    topServiceId && (counts.get(topServiceId) ?? 0) > 1
+      ? (db.services.find((s) => s.id === topServiceId)?.name ?? null)
+      : null;
+
   return {
     total: all.length,
     completed: completed.length,
@@ -112,6 +125,7 @@ export function customerStats(db: Database, customerId: string) {
     ).length,
     spend,
     lastVisit: last ? toDate(last.start) : null,
+    favouriteService,
   };
 }
 

@@ -53,12 +53,12 @@ export default function HomePage() {
     <div>
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
           <div className="animate-fade-in">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
               Maison Lumière · Dubai
             </p>
-            <h1 className="mt-4 font-serif text-5xl font-medium leading-[1.05] tracking-tight text-foreground sm:text-6xl">
+            <h1 className="mt-4 font-serif text-[2.6rem] font-medium leading-[1.05] tracking-tight text-foreground sm:text-6xl">
               Beauty, tailored to you.
             </h1>
             <p className="mt-5 max-w-md text-[15px] leading-relaxed text-muted">
@@ -102,7 +102,7 @@ export default function HomePage() {
       </section>
 
       {/* Services */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <div className="flex items-end justify-between gap-6">
           <SectionTitle
             eyebrow="Treatments"
@@ -117,7 +117,7 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:mt-10 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {!hydrated
             ? Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-[22rem]" />
@@ -129,7 +129,7 @@ export default function HomePage() {
       </section>
 
       {/* Specialists */}
-      <section className="bg-surface-muted py-16">
+      <section className="bg-surface-muted py-12 sm:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <SectionTitle
             eyebrow="The team"
@@ -137,7 +137,7 @@ export default function HomePage() {
             description="Senior therapists who take the time to get it right."
             align="center"
           />
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid gap-4 sm:mt-10 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {!hydrated
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="h-[26rem]" />
@@ -158,13 +158,13 @@ export default function HomePage() {
       </section>
 
       {/* Why choose us */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <SectionTitle
           eyebrow="Why Maison Lumière"
           title="Considered care, start to finish"
           align="center"
         />
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-4 sm:mt-10 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {BENEFITS.map((b) => (
             <div
               key={b.title}

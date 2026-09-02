@@ -9,7 +9,7 @@ export function SiteFooter() {
   const s = db.settings;
 
   return (
-    <footer className="mt-24 border-t border-border bg-surface-muted">
+    <footer className="mt-16 sm:mt-24 border-t border-border bg-surface-muted">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
           <p className="font-serif text-xl font-semibold text-foreground">

@@ -19,7 +19,7 @@ export function CardBody({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("p-5 sm:p-6", className)} {...props} />;
+  return <div className={cn("p-4 sm:p-6", className)} {...props} />;
 }
 
 export function CardHeader({
@@ -75,7 +75,7 @@ export function SectionTitle({
           {eyebrow}
         </p>
       ) : null}
-      <h2 className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
+      <h2 className="text-2xl font-medium tracking-tight text-foreground sm:text-4xl">
         {title}
       </h2>
       {description ? (

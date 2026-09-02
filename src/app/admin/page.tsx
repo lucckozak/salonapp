@@ -58,9 +58,9 @@ export default function AdminDashboard() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-5">
         <Stat
-          label="Today's appointments"
+          label="Today"
           value={metrics.todayCount}
           icon={<CalendarClock size={15} />}
         />
@@ -71,29 +71,29 @@ export default function AdminDashboard() {
           icon={<CalendarDays size={15} />}
         />
         <Stat
-          label="Today's revenue"
+          label="Revenue today"
           value={formatPrice(metrics.revenue, db.settings.currency)}
           tone="success"
           icon={<TrendingUp size={15} />}
         />
         <Stat
-          label="Active employees"
+          label="Employees"
           value={metrics.employees}
           tone="accent"
           icon={<UsersRound size={15} />}
         />
         <Stat
-          label="Total customers"
+          label="Customers"
           value={metrics.customers.toLocaleString()}
           tone="warning"
           icon={<Users size={15} />}
         />
       </div>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <div>
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+        <div className="min-w-0">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-medium text-foreground">
+            <h2 className="text-base font-medium text-foreground sm:text-lg">
               Today's appointments
             </h2>
             <Link
@@ -110,8 +110,8 @@ export default function AdminDashboard() {
           />
         </div>
 
-        <div>
-          <h2 className="mb-4 text-lg font-medium text-foreground">
+        <div className="min-w-0">
+          <h2 className="mb-3 text-base font-medium text-foreground sm:text-lg">
             Notification log
           </h2>
           <Card>

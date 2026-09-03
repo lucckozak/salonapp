@@ -2,12 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-const DEMO = [
-  { label: "Customer", email: "customer@salon.app" },
-  { label: "Specialist", email: "sarah@salon.app" },
-  { label: "Admin", email: "admin@salon.app" },
-];
+import { useStore } from "@/lib/store";
 
 export function AuthShell({
   title,
@@ -22,13 +17,32 @@ export function AuthShell({
   footer: React.ReactNode;
   onDemo?: (email: string) => void;
 }) {
+  const { db } = useStore();
+
+  const demoAccounts = [
+    {
+      label: "Customer",
+      email:
+        db.users.find((u) => u.email === "customer@salon.app")?.email ??
+        db.users.find((u) => u.role === "CUSTOMER")?.email,
+    },
+    {
+      label: "Specialist",
+      email: db.users.find((u) => u.role === "EMPLOYEE")?.email,
+    },
+    {
+      label: "Admin",
+      email: db.users.find((u) => u.role === "ADMIN")?.email,
+    },
+  ].filter((d): d is { label: string; email: string } => !!d.email);
+
   return (
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center px-4 py-12 sm:px-6">
       <Link
         href="/"
         className="mb-8 text-center font-serif text-2xl font-semibold text-foreground"
       >
-        Maison Lumière
+        {db.settings.name || "Maison Lumière"}
       </Link>
       <div className="rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-card)] sm:p-8">
         <h1 className="font-serif text-2xl font-medium text-foreground">
@@ -42,10 +56,12 @@ export function AuthShell({
         <div className="mt-6 rounded-2xl border border-dashed border-border-strong bg-surface-muted p-4">
           <p className="text-xs font-medium text-muted-strong">
             Demo accounts — password is{" "}
-            <code className="rounded bg-surface-sunken px-1.5 py-0.5">password</code>
+            <code className="rounded bg-surface-sunken px-1.5 py-0.5">
+              password
+            </code>
           </p>
           <div className="mt-2.5 flex flex-wrap gap-2">
-            {DEMO.map((d) => (
+            {demoAccounts.map((d) => (
               <button
                 key={d.email}
                 onClick={() => onDemo(d.email)}

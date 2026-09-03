@@ -11,6 +11,24 @@ queries later.
 
 **Live demo:** https://lucckozak.github.io/salonapp/
 
+## Demo mode (for showing prospective salons)
+
+A floating **Demo** panel (bottom-left, every page) lets you:
+
+- **Switch salon template** — Maison Lumière (full-service spa), Glow Bar (skin
+  studio), Vanta Grooming (barbershop), Rosa & Co (nail & brow bar). Each swaps
+  the name, tagline, brand colours, service menu, team and a fresh set of sample
+  bookings. Currency follows the template.
+- **View the site as** Customer / Specialist / Admin with one click.
+- **Copy a share link** — `…/salonapp/?salon=vanta` opens pre-branded for a
+  prospect. `?demo=off` hides the panel for clean screenshots.
+- **Reset** the sample data.
+
+Fine-tune a template in **Admin → Settings → Appearance**: pick a brand colour
+(or a quick palette) with a live preview, tweak name / tagline / contact /
+currency / hours, then *Save all settings*. Templates and colours live in
+`src/lib/data/presets.ts` and `src/lib/theme.ts`.
+
 ## Run
 
 ```bash

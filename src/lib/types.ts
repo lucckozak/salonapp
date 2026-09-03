@@ -114,6 +114,10 @@ export interface SalonSettings {
   phone: string;
   email: string;
   currency: string;
+  /** id of the salon preset this demo is currently styled as */
+  presetId: string;
+  /** brand colours — drive the whole UI at runtime */
+  theme: { primary: string; accent: string };
   openingHours: OpeningHour[];
   /** buffer in minutes reserved after every appointment */
   bufferMinutes: number;

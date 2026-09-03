@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Palette, RotateCcw } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { DayOfWeek, SalonSettings } from "@/lib/types";
 import { DAY_LABELS } from "@/lib/types";
+import { applyTheme, isValidHex, THEME_SWATCHES } from "@/lib/theme";
+import { SALON_PRESETS } from "@/lib/data/presets";
 import { PageHeading } from "@/components/layout/dashboard-shell";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,13 +19,22 @@ import { useToast } from "@/components/ui/toast";
 const ORDER: DayOfWeek[] = [1, 2, 3, 4, 5, 6, 0];
 
 export default function AdminSettingsPage() {
-  const { db, updateSettings, resetAll } = useStore();
+  const { db, updateSettings, resetAll, applyPreset } = useStore();
+  const router = useRouter();
   const toast = useToast();
   const [s, setS] = useState<SalonSettings>(structuredClone(db.settings));
   const [confirmReset, setConfirmReset] = useState(false);
+  const [presetToLoad, setPresetToLoad] = useState<string | null>(null);
 
   function set<K extends keyof SalonSettings>(k: K, v: SalonSettings[K]) {
     setS((prev) => ({ ...prev, [k]: v }));
+  }
+
+  function setBrand(part: "primary" | "accent", hex: string) {
+    const theme = { ...s.theme, [part]: hex };
+    setS((prev) => ({ ...prev, theme }));
+    if (isValidHex(theme.primary) && isValidHex(theme.accent))
+      applyTheme(theme); // live preview
   }
 
   function setOpening(day: DayOfWeek, patch: Partial<{ open: string | null; close: string | null }>) {
@@ -82,6 +94,116 @@ export default function AdminSettingsPage() {
               onChange={(e) => set("currency", e.target.value)}
             />
           </Field>
+        </CardBody>
+      </Card>
+
+      {/* Appearance & demo preset */}
+      <Card>
+        <CardBody className="space-y-5">
+          <div className="flex items-center gap-2">
+            <Palette size={16} className="text-primary" />
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+              Appearance
+            </h2>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Brand colour"
+              hint="Drives buttons, highlights and links across the whole site."
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={isValidHex(s.theme.primary) ? s.theme.primary : "#7c5e77"}
+                  onChange={(e) => setBrand("primary", e.target.value)}
+                  className="h-11 w-14 cursor-pointer rounded-lg border border-border-strong bg-surface p-1"
+                  aria-label="Primary colour"
+                />
+                <Input
+                  value={s.theme.primary}
+                  onChange={(e) => setBrand("primary", e.target.value)}
+                />
+              </div>
+            </Field>
+            <Field label="Accent colour" hint="Used for eyebrow labels and tags.">
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={isValidHex(s.theme.accent) ? s.theme.accent : "#b98c86"}
+                  onChange={(e) => setBrand("accent", e.target.value)}
+                  className="h-11 w-14 cursor-pointer rounded-lg border border-border-strong bg-surface p-1"
+                  aria-label="Accent colour"
+                />
+                <Input
+                  value={s.theme.accent}
+                  onChange={(e) => setBrand("accent", e.target.value)}
+                />
+              </div>
+            </Field>
+          </div>
+
+          <div>
+            <p className="mb-2 text-[13px] font-medium text-muted-strong">
+              Quick palettes
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {THEME_SWATCHES.map((sw) => (
+                <button
+                  key={sw.label}
+                  onClick={() => {
+                    setS((prev) => ({
+                      ...prev,
+                      theme: { primary: sw.primary, accent: sw.accent },
+                    }));
+                    applyTheme({ primary: sw.primary, accent: sw.accent });
+                  }}
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-surface py-1 pl-1 pr-3 text-xs font-medium text-foreground hover:border-primary/50"
+                >
+                  <span
+                    className="h-5 w-5 rounded-full"
+                    style={{
+                      background: `linear-gradient(135deg, ${sw.primary} 55%, ${sw.accent} 55%)`,
+                    }}
+                  />
+                  {sw.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              Colour changes preview instantly — press{" "}
+              <span className="font-medium text-muted-strong">
+                Save all settings
+              </span>{" "}
+              to keep them.
+            </p>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <p className="text-[13px] font-medium text-muted-strong">
+              Load a salon template
+            </p>
+            <p className="mb-2 text-xs text-muted">
+              Swaps the whole demo — name, branding, menu and team — and loads
+              fresh sample data.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {SALON_PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setPresetToLoad(p.id)}
+                  className={
+                    "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors " +
+                    (p.id === db.settings.presetId
+                      ? "border-primary bg-primary-soft/50 text-primary-hover"
+                      : "border-border bg-surface text-foreground hover:border-primary/50")
+                  }
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </CardBody>
       </Card>
 
@@ -273,6 +395,39 @@ export default function AdminSettingsPage() {
         }
       >
         <p className="text-sm text-muted">This cannot be undone.</p>
+      </Dialog>
+
+      <Dialog
+        open={!!presetToLoad}
+        onClose={() => setPresetToLoad(null)}
+        title="Load this salon template?"
+        description="The demo will be rebuilt as this salon — its own name, branding, service menu, team and fresh sample bookings. Local changes are discarded."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPresetToLoad(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (presetToLoad) {
+                  applyPreset(presetToLoad);
+                  const label = SALON_PRESETS.find(
+                    (p) => p.id === presetToLoad,
+                  )?.label;
+                  toast.success(`Loaded ${label ?? "template"}`);
+                  router.push("/admin");
+                }
+                setPresetToLoad(null);
+              }}
+            >
+              Load template
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted">
+          {SALON_PRESETS.find((p) => p.id === presetToLoad)?.blurb}
+        </p>
       </Dialog>
     </div>
   );

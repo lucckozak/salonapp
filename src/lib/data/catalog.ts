@@ -30,6 +30,8 @@ export const SALON_SETTINGS: SalonSettings = {
   phone: "+971 4 555 0180",
   email: "hello@maisonlumiere.ae",
   currency: "AED",
+  presetId: "maison",
+  theme: { primary: "#7c5e77", accent: "#b98c86" },
   openingHours,
   bufferMinutes: 10,
   cancellationWindowHours: 24,

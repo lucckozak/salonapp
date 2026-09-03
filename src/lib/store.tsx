@@ -108,6 +108,8 @@ interface StoreValue {
   updateSettings: (patch: Partial<SalonSettings>) => void;
   sendEmail: (msg: Omit<EmailMessage, "id" | "sentAt">) => void;
   resetAll: () => void;
+  /** wipe local data and re-seed styled as the given salon preset */
+  applyPreset: (presetId: string) => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -122,7 +124,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const loaded = loadDatabase();
-    setDb(loaded ?? generateSeedDatabase(new Date()));
+    let salonParam: string | null = null;
+    try {
+      salonParam = new URLSearchParams(window.location.search).get("salon");
+    } catch {
+      /* ignore */
+    }
+    // a `?salon=` link overrides whatever is stored locally
+    if (salonParam && loaded?.settings.presetId !== salonParam) {
+      setDb(generateSeedDatabase(new Date(), salonParam));
+    } else {
+      setDb(loaded ?? generateSeedDatabase(new Date()));
+    }
     hydratedRef.current = true;
   }, []);
 
@@ -506,7 +519,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       resetAll: () => {
         resetDatabase();
-        setDb(generateSeedDatabase(new Date()));
+        setDb(generateSeedDatabase(new Date(), safeDb.settings.presetId));
+      },
+
+      applyPreset: (presetId) => {
+        resetDatabase();
+        setDb(generateSeedDatabase(new Date(), presetId));
       },
     };
   }, [db, mutate]);
@@ -532,6 +550,8 @@ const EMPTY: Database = {
     phone: "",
     email: "",
     currency: "AED",
+    presetId: "maison",
+    theme: { primary: "#7c5e77", accent: "#b98c86" },
     openingHours: [],
     bufferMinutes: 0,
     cancellationWindowHours: 24,

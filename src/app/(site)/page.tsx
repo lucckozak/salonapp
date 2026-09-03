@@ -56,15 +56,14 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
           <div className="animate-fade-in">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
-              Maison Lumière · Dubai
+              {db.settings.name}
             </p>
             <h1 className="mt-4 font-serif text-[2.6rem] font-medium leading-[1.05] tracking-tight text-foreground sm:text-6xl">
-              Beauty, tailored to you.
+              {db.settings.tagline || "Beauty, tailored to you."}
             </h1>
             <p className="mt-5 max-w-md text-[15px] leading-relaxed text-muted">
-              A calm, considered space for facials, nails, brows and body. Browse
-              our treatments, choose your specialist, and book a time that
-              actually works — all online.
+              Browse our services, choose your specialist, and book a time that
+              actually works — all online, in under two minutes.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <LinkButton href="/book" size="lg">
@@ -160,7 +159,7 @@ export default function HomePage() {
       {/* Why choose us */}
       <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <SectionTitle
-          eyebrow="Why Maison Lumière"
+          eyebrow={`Why ${db.settings.name}`}
           title="Considered care, start to finish"
           align="center"
         />

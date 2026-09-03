@@ -29,6 +29,8 @@ interface AuthValue {
   signUp: (input: SignUpInput) => { ok: boolean; error?: string };
   signOut: () => void;
   updateProfile: (patch: Partial<User>) => void;
+  /** demo shortcut — sign in as the first user with this role */
+  viewAs: (role: Role) => boolean;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -98,6 +100,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateProfile: (patch) => {
         if (!user) return;
         store.saveCustomer({ ...user, ...patch });
+      },
+
+      viewAs: (role) => {
+        const match =
+          role === "CUSTOMER"
+            ? (store.db.users.find(
+                (u) => u.email === "customer@salon.app",
+              ) ?? store.db.users.find((u) => u.role === "CUSTOMER"))
+            : store.db.users.find((u) => u.role === role);
+        if (!match) return false;
+        persist(match.id);
+        return true;
       },
     };
   }, [userId, ready, store, persist]);

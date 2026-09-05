@@ -465,3 +465,60 @@ export function buildDayTimeline(
 
   return rows.sort((a, b) => a.start - b.start);
 }
+
+/**
+ * Utilization for one employee over [from, to): booked minutes (active
+ * appointments) as a share of available working minutes (working hours minus
+ * breaks/blocks — the time they *could* have been booked).
+ */
+export function employeeUtilization(
+  ctx: SlotContext,
+  employeeId: string,
+  from: Date,
+  to: Date,
+): { bookedMinutes: number; availableMinutes: number; percent: number } {
+  let bookedMinutes = 0;
+  let availableMinutes = 0;
+
+  let cursor = startOfDay(from);
+  const end = startOfDay(to);
+  while (cursor < end) {
+    const emp = employeeWindow(ctx, employeeId, cursor);
+    const salon = salonWindow(ctx, cursor);
+    if (emp && salon && !ctx.db.timeBlocks.some((tb) => {
+      if (tb.employeeId !== employeeId || tb.type !== "VACATION") return false;
+      const s = toDate(tb.start);
+      const e = toDate(tb.end);
+      return s <= cursor && e >= addDays(cursor, 1);
+    })) {
+      const windowStart = Math.max(emp.start, salon.open);
+      const windowEnd = Math.min(emp.end, salon.close);
+      if (windowEnd > windowStart) {
+        const busyMinutes = employeeBusyIntervals(ctx, employeeId, cursor)
+          .map((iv) => ({
+            start: Math.max(iv.start, windowStart),
+            end: Math.min(iv.end, windowEnd),
+          }))
+          .filter((iv) => iv.end > iv.start)
+          .reduce((s, iv) => s + (iv.end - iv.start), 0);
+        availableMinutes += windowEnd - windowStart - busyMinutes;
+      }
+    }
+
+    bookedMinutes += employeeAppointmentIntervals(ctx, employeeId, cursor).reduce(
+      (s, iv) => s + (iv.end - iv.start),
+      0,
+    );
+
+    cursor = addDays(cursor, 1);
+  }
+
+  return {
+    bookedMinutes,
+    availableMinutes,
+    percent:
+      availableMinutes > 0
+        ? Math.round((bookedMinutes / availableMinutes) * 100)
+        : 0,
+  };
+}

@@ -57,6 +57,7 @@ export function EmployeeForm({ employeeId }: { employeeId: string | null }) {
     bio: existing?.bio ?? "",
     profileImage: existing?.profileImage ?? "",
     active: existing?.active ?? true,
+    commissionPercent: existing?.commissionPercent ?? 40,
     password: "",
   });
   const [serviceIds, setServiceIds] = useState<string[]>(
@@ -97,6 +98,7 @@ export function EmployeeForm({ employeeId }: { employeeId: string | null }) {
         serviceIds,
         active: form.active,
         workingHours: hours as Record<DayOfWeek, [string, string] | null>,
+        commissionPercent: form.commissionPercent,
       });
       toast.success("Employee created", `${form.firstName} can now take bookings.`);
       router.push(`/admin/employees/manage?id=${emp.id}`);
@@ -108,6 +110,7 @@ export function EmployeeForm({ employeeId }: { employeeId: string | null }) {
         profileImage: form.profileImage.trim(),
         active: form.active,
         serviceIds,
+        commissionPercent: form.commissionPercent,
       });
       saveCustomer({
         ...existingUser,
@@ -178,6 +181,26 @@ export function EmployeeForm({ employeeId }: { employeeId: string | null }) {
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
               />
+            </Field>
+            <Field
+              label="Commission"
+              hint="% of their completed + confirmed revenue"
+            >
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={form.commissionPercent}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      commissionPercent: Number(e.target.value),
+                    })
+                  }
+                />
+                <span className="text-sm text-muted">%</span>
+              </div>
             </Field>
             {isNew ? (
               <Field

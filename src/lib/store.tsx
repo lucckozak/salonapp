@@ -12,10 +12,12 @@ import {
 import type {
   Appointment,
   AppointmentStatus,
+  Coupon,
   Database,
   DayOfWeek,
   EmailMessage,
   Employee,
+  GiftCard,
   RecurringBreak,
   SalonSettings,
   Service,
@@ -44,6 +46,10 @@ interface BookInput {
   customerNotes?: string;
   source?: Appointment["source"];
   status?: AppointmentStatus;
+  couponCode?: string;
+  discountAmount?: number;
+  giftCardCode?: string;
+  giftCardAmountUsed?: number;
 }
 
 interface NewEmployeeInput {
@@ -58,6 +64,7 @@ interface NewEmployeeInput {
   serviceIds: string[];
   active: boolean;
   workingHours: Record<DayOfWeek, [string, string] | null>;
+  commissionPercent?: number;
 }
 
 interface StoreValue {
@@ -110,6 +117,21 @@ interface StoreValue {
   resetAll: () => void;
   /** wipe local data and re-seed styled as the given salon preset */
   applyPreset: (presetId: string) => void;
+
+  // marketing
+  saveCoupon: (coupon: Coupon) => void;
+  deleteCoupon: (id: string) => void;
+  saveGiftCard: (giftCard: GiftCard) => void;
+  deleteGiftCard: (id: string) => void;
+  /** validate a promo code typed at checkout — doesn't redeem it yet */
+  checkPromoCode: (
+    code: string,
+    price: number,
+  ) =>
+    | { kind: "coupon"; coupon: Coupon; discount: number }
+    | { kind: "giftcard"; giftCard: GiftCard; amount: number }
+    | { kind: "invalid"; reason: string };
+  sendBirthdayGreeting: (customerId: string) => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -235,9 +257,36 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           customerNotes: input.customerNotes,
           source: input.source ?? "ONLINE",
           createdAt: new Date().toISOString(),
+          couponCode: input.couponCode,
+          discountAmount: input.discountAmount,
+          giftCardCode: input.giftCardCode,
+          giftCardAmountUsed: input.giftCardAmountUsed,
         };
         mutate((prev) => {
-          const next = { ...prev, appointments: [...prev.appointments, appt] };
+          const next = {
+            ...prev,
+            appointments: [...prev.appointments, appt],
+            coupons: input.couponCode
+              ? prev.coupons.map((c) =>
+                  c.code === input.couponCode
+                    ? { ...c, redemptions: c.redemptions + 1 }
+                    : c,
+                )
+              : prev.coupons,
+            giftCards: input.giftCardCode
+              ? prev.giftCards.map((g) =>
+                  g.code === input.giftCardCode
+                    ? {
+                        ...g,
+                        balance: Math.max(
+                          0,
+                          g.balance - (input.giftCardAmountUsed ?? 0),
+                        ),
+                      }
+                    : g,
+                )
+              : prev.giftCards,
+          };
           notifyBooking(next, appt, "BOOKING_CONFIRMATION");
           return next;
         });
@@ -360,6 +409,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           serviceIds: input.serviceIds,
           rating: undefined,
           reviewCount: 0,
+          commissionPercent: input.commissionPercent,
         };
         const workingHours: WorkingHour[] = ([0, 1, 2, 3, 4, 5, 6] as DayOfWeek[]).map(
           (d) => {
@@ -526,6 +576,86 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         resetDatabase();
         setDb(generateSeedDatabase(new Date(), presetId));
       },
+
+      saveCoupon: (coupon) =>
+        mutate((prev) => ({
+          ...prev,
+          coupons: prev.coupons.some((c) => c.id === coupon.id)
+            ? prev.coupons.map((c) => (c.id === coupon.id ? coupon : c))
+            : [...prev.coupons, { ...coupon, id: coupon.id || uid("cpn") }],
+        })),
+
+      deleteCoupon: (id) =>
+        mutate((prev) => ({
+          ...prev,
+          coupons: prev.coupons.filter((c) => c.id !== id),
+        })),
+
+      saveGiftCard: (giftCard) =>
+        mutate((prev) => ({
+          ...prev,
+          giftCards: prev.giftCards.some((g) => g.id === giftCard.id)
+            ? prev.giftCards.map((g) => (g.id === giftCard.id ? giftCard : g))
+            : [...prev.giftCards, { ...giftCard, id: giftCard.id || uid("gc") }],
+        })),
+
+      deleteGiftCard: (id) =>
+        mutate((prev) => ({
+          ...prev,
+          giftCards: prev.giftCards.filter((g) => g.id !== id),
+        })),
+
+      checkPromoCode: (code, price) => {
+        const trimmed = code.trim().toUpperCase();
+        if (!trimmed) return { kind: "invalid", reason: "Enter a code." };
+
+        const coupon = safeDb.coupons.find((c) => c.code === trimmed);
+        if (coupon) {
+          if (!coupon.active) return { kind: "invalid", reason: "This code is no longer active." };
+          if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date())
+            return { kind: "invalid", reason: "This code has expired." };
+          if (coupon.maxRedemptions && coupon.redemptions >= coupon.maxRedemptions)
+            return { kind: "invalid", reason: "This code has been fully redeemed." };
+          const discount =
+            coupon.type === "PERCENT"
+              ? Math.round((price * coupon.value) / 100)
+              : Math.min(coupon.value, price);
+          return { kind: "coupon", coupon, discount };
+        }
+
+        const giftCard = safeDb.giftCards.find((g) => g.code === trimmed);
+        if (giftCard) {
+          if (!giftCard.active) return { kind: "invalid", reason: "This gift card is inactive." };
+          if (giftCard.expiresAt && new Date(giftCard.expiresAt) < new Date())
+            return { kind: "invalid", reason: "This gift card has expired." };
+          if (giftCard.balance <= 0)
+            return { kind: "invalid", reason: "This gift card has no remaining balance." };
+          return {
+            kind: "giftcard",
+            giftCard,
+            amount: Math.min(giftCard.balance, price),
+          };
+        }
+
+        return { kind: "invalid", reason: "We couldn't find that code." };
+      },
+
+      sendBirthdayGreeting: (customerId) => {
+        const customer = userById(customerId);
+        if (!customer) return;
+        mutate((prev) => {
+          const next = { ...prev };
+          pushEmails(next, [
+            {
+              to: customer.email,
+              subject: `Happy birthday from ${prev.settings.name}! 🎂`,
+              body: `Hi ${customer.firstName}, the whole team at ${prev.settings.name} wishes you a wonderful birthday. Treat yourself to something lovely this month!`,
+              kind: "BIRTHDAY",
+            },
+          ]);
+          return next;
+        });
+      },
     };
   }, [db, mutate]);
 
@@ -543,6 +673,8 @@ const EMPTY: Database = {
   timeBlocks: [],
   appointments: [],
   emailLog: [],
+  coupons: [],
+  giftCards: [],
   settings: {
     name: "",
     tagline: "",

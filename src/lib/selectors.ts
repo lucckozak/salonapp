@@ -1,5 +1,6 @@
 import type { Appointment, Database, Service, User } from "./types";
 import { isSameDay, startOfDay, toDate } from "./time";
+import { employeeUtilization } from "./availability";
 
 export interface AppointmentView {
   appt: Appointment;
@@ -129,6 +130,17 @@ export function customerStats(db: Database, customerId: string) {
   };
 }
 
+/** Customers whose birthday (month + day) falls on `now`. */
+export function todaysBirthdays(db: Database, now: Date = new Date()): User[] {
+  const m = now.getMonth();
+  const d = now.getDate();
+  return db.users.filter((u) => {
+    if (u.role !== "CUSTOMER" || !u.dateOfBirth) return false;
+    const dob = toDate(u.dateOfBirth);
+    return dob.getMonth() === m && dob.getDate() === d;
+  });
+}
+
 export function groupServicesByCategory(services: Service[]) {
   const map = new Map<string, Service[]>();
   for (const s of services) {
@@ -182,6 +194,10 @@ export interface RevenueGroup {
   label: string;
   count: number;
   revenue: number;
+  /** employee groups only — their cut of the revenue, from Employee.commissionPercent */
+  commission?: number;
+  /** employee groups only — booked vs. available working minutes, 0-100 */
+  utilizationPercent?: number;
 }
 
 export interface RevenueReport {
@@ -243,6 +259,19 @@ export function revenueReport(
     s.count += 1;
     s.revenue += price;
     svcMap.set(sKey, s);
+  }
+
+  for (const [eKey, group] of empMap) {
+    const emp = db.employees.find((e) => e.id === eKey);
+    group.commission = emp?.commissionPercent
+      ? Math.round((group.revenue * emp.commissionPercent) / 100)
+      : undefined;
+    group.utilizationPercent = employeeUtilization(
+      { db },
+      eKey,
+      from,
+      to,
+    ).percent;
   }
 
   const sortByRevenue = (a: RevenueGroup, b: RevenueGroup) =>

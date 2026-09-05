@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, SlidersHorizontal, X } from "lucide-react";
+import { Download, Plus, SlidersHorizontal, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { AppointmentStatus } from "@/lib/types";
 import { STATUS_LABELS } from "@/lib/types";
-import { isSameDay, toDate } from "@/lib/time";
-import { cn, fullName } from "@/lib/utils";
+import { fmt, isSameDay, toDate } from "@/lib/time";
+import { cn, downloadCsv, fullName } from "@/lib/utils";
 import { PageHeading } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -72,15 +72,44 @@ export default function AdminAppointmentsPage() {
   const hasFilters =
     date || employeeId || serviceId || status || q || range !== "upcoming";
 
+  function exportCsv() {
+    downloadCsv(
+      `appointments-${fmt.isoDate(new Date())}.csv`,
+      ["Date", "Time", "Customer", "Email", "Phone", "Service", "Specialist", "Price", "Status"],
+      filtered.map((a) => {
+        const c = db.users.find((u) => u.id === a.customerId);
+        const emp = db.employees.find((e) => e.id === a.employeeId);
+        const empUser = emp && db.users.find((u) => u.id === emp.userId);
+        const svc = db.services.find((s) => s.id === a.serviceId);
+        return [
+          fmt.isoDate(a.start),
+          fmt.time(a.start),
+          c ? fullName(c) : "",
+          c?.email,
+          c?.phone,
+          svc?.name,
+          empUser ? fullName(empUser) : "",
+          svc?.price,
+          STATUS_LABELS[a.status],
+        ];
+      }),
+    );
+  }
+
   return (
     <div>
       <PageHeading
         title="Appointments"
         description={`${filtered.length} matching`}
         action={
-          <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus size={15} /> New appointment
-          </Button>
+          <>
+            <Button variant="outline" size="sm" onClick={exportCsv}>
+              <Download size={15} /> Export CSV
+            </Button>
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus size={15} /> New appointment
+            </Button>
+          </>
         }
       />
 

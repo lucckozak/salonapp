@@ -17,7 +17,8 @@ import { PageHeading } from "@/components/layout/dashboard-shell";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
-import { Stat, EmptyState } from "@/components/ui/misc";
+import { Stat, EmptyState, Switch } from "@/components/ui/misc";
+import { Badge } from "@/components/ui/badge";
 import { AppointmentCard } from "@/components/appointments/appointment-card";
 import { AppointmentEditorDialog } from "@/components/appointments/appointment-editor-dialog";
 import { RescheduleDialog } from "@/components/appointments/reschedule-dialog";
@@ -38,6 +39,8 @@ function CustomerDetail() {
     email: customer?.email ?? "",
     phone: customer?.phone ?? "",
     dateOfBirth: customer?.dateOfBirth ?? "",
+    blocked: customer?.blocked ?? false,
+    blockedReason: customer?.blockedReason ?? "",
   });
   const [booking, setBooking] = useState(false);
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
@@ -71,7 +74,16 @@ function CustomerDetail() {
       </Link>
 
       <PageHeading
-        title={fullName(customer)}
+        title={
+          <>
+            {fullName(customer)}
+            {customer.blocked ? (
+              <Badge tone="danger" className="ml-2 align-middle">
+                Blocked
+              </Badge>
+            ) : null}
+          </>
+        }
         description={`Customer since ${fmt.mediumDate(customer.createdAt)}`}
         action={
           <>
@@ -114,6 +126,10 @@ function CustomerDetail() {
                   email: form.email.trim(),
                   phone: form.phone.trim(),
                   dateOfBirth: form.dateOfBirth || undefined,
+                  blocked: form.blocked,
+                  blockedReason: form.blocked
+                    ? form.blockedReason.trim() || undefined
+                    : undefined,
                 });
                 toast.success("Customer updated");
               }}
@@ -158,6 +174,26 @@ function CustomerDetail() {
                   }
                 />
               </Field>
+
+              <div className="rounded-xl border border-border bg-surface-muted p-3">
+                <Switch
+                  checked={form.blocked}
+                  onChange={(v) => setForm({ ...form, blocked: v })}
+                  label="Blacklist this customer"
+                  description="Blocked customers can't self-book online; you can still book for them manually."
+                />
+                {form.blocked ? (
+                  <Input
+                    className="mt-3"
+                    placeholder="Reason (optional, staff-only)"
+                    value={form.blockedReason}
+                    onChange={(e) =>
+                      setForm({ ...form, blockedReason: e.target.value })
+                    }
+                  />
+                ) : null}
+              </div>
+
               <div className="flex justify-end">
                 <Button type="submit" size="sm">
                   Save

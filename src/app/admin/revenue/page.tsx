@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   BadgeCheck,
   CalendarClock,
+  Percent,
   Receipt,
   TrendingUp,
   UserX,
@@ -64,6 +65,10 @@ export default function AdminRevenuePage() {
   );
 
   const total = report.realised + report.booked;
+  const totalCommission = report.byEmployee.reduce(
+    (s, e) => s + (e.commission ?? 0),
+    0,
+  );
 
   return (
     <div>
@@ -84,7 +89,7 @@ export default function AdminRevenuePage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-5">
         <Stat
           label="Realised"
           value={formatPrice(report.realised, currency)}
@@ -112,6 +117,13 @@ export default function AdminRevenuePage() {
           hint="in this period"
           tone="warning"
           icon={<UserX size={15} />}
+        />
+        <Stat
+          label="Staff commission"
+          value={formatPrice(totalCommission, currency)}
+          hint="owed this period"
+          tone="primary"
+          icon={<Percent size={15} />}
         />
       </div>
 
@@ -154,6 +166,7 @@ export default function AdminRevenuePage() {
           rows={report.byEmployee}
           total={total}
           currency={currency}
+          showEmployeeMeta
         />
         <BreakdownTable
           title="By treatment"
@@ -238,11 +251,13 @@ function BreakdownTable({
   rows,
   total,
   currency,
+  showEmployeeMeta,
 }: {
   title: string;
   rows: RevenueGroup[];
   total: number;
   currency: string;
+  showEmployeeMeta?: boolean;
 }) {
   return (
     <Card>
@@ -273,6 +288,26 @@ function BreakdownTable({
                       style={{ width: `${Math.max(pct, 1.5)}%` }}
                     />
                   </div>
+                  {showEmployeeMeta ? (
+                    <div className="mt-1.5 flex gap-4 text-xs text-muted">
+                      {r.commission != null ? (
+                        <span>
+                          Commission:{" "}
+                          <span className="font-medium text-muted-strong">
+                            {formatPrice(r.commission, currency)}
+                          </span>
+                        </span>
+                      ) : null}
+                      {r.utilizationPercent != null ? (
+                        <span>
+                          Utilization:{" "}
+                          <span className="font-medium text-muted-strong">
+                            {r.utilizationPercent}%
+                          </span>
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </li>
               );
             })}

@@ -2,16 +2,17 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { customerStats } from "@/lib/selectors";
-import { formatPrice, fullName } from "@/lib/utils";
+import { downloadCsv, formatPrice, fullName } from "@/lib/utils";
 import { fmt } from "@/lib/time";
 import { PageHeading } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { Dialog } from "@/components/ui/dialog";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 
 export default function AdminCustomersPage() {
@@ -40,6 +41,25 @@ export default function AdminCustomersPage() {
       .sort((a, b) => a.firstName.localeCompare(b.firstName));
   }, [db.users, q]);
 
+  function exportCsv() {
+    downloadCsv(
+      `customers-${fmt.isoDate(new Date())}.csv`,
+      ["Name", "Email", "Phone", "Visits", "Spend", "Last visit", "Blocked"],
+      customers.map((c) => {
+        const s = customerStats(db, c.id);
+        return [
+          fullName(c),
+          c.email,
+          c.phone,
+          s.completed,
+          s.spend,
+          s.lastVisit ? fmt.isoDate(s.lastVisit) : "",
+          c.blocked ? "Yes" : "No",
+        ];
+      }),
+    );
+  }
+
   return (
     <div>
       <PageHeading
@@ -48,9 +68,14 @@ export default function AdminCustomersPage() {
           db.users.filter((u) => u.role === "CUSTOMER").length
         } customers`}
         action={
-          <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus size={15} /> Add customer
-          </Button>
+          <>
+            <Button variant="outline" size="sm" onClick={exportCsv}>
+              <Download size={15} /> Export CSV
+            </Button>
+            <Button size="sm" onClick={() => setAdding(true)}>
+              <Plus size={15} /> Add customer
+            </Button>
+          </>
         }
       />
 
@@ -88,6 +113,7 @@ export default function AdminCustomersPage() {
                     >
                       <Avatar name={fullName(c)} size="sm" />
                       {fullName(c)}
+                      {c.blocked ? <Badge tone="danger">Blocked</Badge> : null}
                     </Link>
                   </td>
                   <td className="hidden px-4 py-3 text-muted-strong sm:table-cell">

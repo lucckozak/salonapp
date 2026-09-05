@@ -24,6 +24,9 @@ export interface User {
   /** prototype only — plaintext for the mock auth layer */
   password: string;
   createdAt: string;
+  /** customer blacklist — blocked customers can't self-book online */
+  blocked?: boolean;
+  blockedReason?: string;
 }
 
 export interface Employee {
@@ -36,6 +39,8 @@ export interface Employee {
   rating?: number;
   reviewCount?: number;
   serviceIds: string[];
+  /** commission on completed + confirmed revenue, 0-100 */
+  commissionPercent?: number;
 }
 
 export interface Service {
@@ -98,6 +103,36 @@ export interface Appointment {
   createdAt: string;
   /** channel the booking came through */
   source: "ONLINE" | "ADMIN" | "WALK_IN";
+  /** promo/discount applied at booking time (display-only, no real payments) */
+  couponCode?: string;
+  discountAmount?: number;
+  giftCardCode?: string;
+  giftCardAmountUsed?: number;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  type: "PERCENT" | "FIXED";
+  value: number;
+  active: boolean;
+  /** ISO date; undefined = no expiry */
+  expiresAt?: string;
+  maxRedemptions?: number;
+  redemptions: number;
+  createdAt: string;
+}
+
+export interface GiftCard {
+  id: string;
+  code: string;
+  initialValue: number;
+  balance: number;
+  active: boolean;
+  purchaserName?: string;
+  recipientEmail?: string;
+  createdAt: string;
+  expiresAt?: string;
 }
 
 export interface OpeningHour {
@@ -148,6 +183,8 @@ export interface Database {
   settings: SalonSettings;
   /** log of stubbed outbound emails */
   emailLog: EmailMessage[];
+  coupons: Coupon[];
+  giftCards: GiftCard[];
 }
 
 export interface EmailMessage {
@@ -162,7 +199,9 @@ export interface EmailMessage {
     | "CANCELLATION"
     | "RESCHEDULE"
     | "EMPLOYEE_NOTIFICATION"
-    | "ADMIN_NOTIFICATION";
+    | "ADMIN_NOTIFICATION"
+    | "BIRTHDAY"
+    | "REVIEW_REQUEST";
 }
 
 export const ACTIVE_STATUSES: AppointmentStatus[] = [

@@ -31,7 +31,7 @@ import {
 } from "./catalog";
 import { getPreset, type SalonPreset } from "./presets";
 
-const STORAGE_VERSION = 6;
+const STORAGE_VERSION = 7;
 
 const ADMIN_USER = STAFF_USERS.find((u) => u.role === "ADMIN")!;
 
@@ -154,7 +154,10 @@ export function emptyDatabase(presetId?: string): Database {
       ...team.users,
       ...structuredClone(CUSTOMER_USERS),
     ],
-    employees: team.employees,
+    employees: team.employees.map((e, i) => ({
+      ...e,
+      commissionPercent: e.commissionPercent ?? 35 + (i % 4) * 5,
+    })),
     services,
     workingHours: team.workingHours,
     recurringBreaks: team.recurringBreaks,
@@ -167,6 +170,8 @@ export function emptyDatabase(presetId?: string): Database {
       theme: { ...preset.theme },
     },
     emailLog: [],
+    coupons: [],
+    giftCards: [],
   };
 }
 
@@ -324,6 +329,8 @@ export function generateSeedDatabase(
   }
 
   ensureDemoCustomerHistory(db, now, rnd);
+  seedBirthdays(db, now);
+  seedPromotions(db, now);
   db.emailLog = seedEmailLog(db, now);
   return db;
 }
@@ -372,6 +379,66 @@ function ensureDemoCustomerHistory(
       createdAt: addDays(start, -5).toISOString(),
     });
   });
+}
+
+/** Give a couple of customers a birthday today / soon, so the demo always has one. */
+function seedBirthdays(db: Database, now: Date) {
+  const customers = db.users.filter((u) => u.role === "CUSTOMER");
+  const withDob = (offsetDays: number, birthYear: number) => {
+    const d = addDays(startOfDay(now), offsetDays);
+    return `${birthYear}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate(),
+    ).padStart(2, "0")}`;
+  };
+  if (customers[0]) customers[0].dateOfBirth = withDob(0, 1994);
+  if (customers[2]) customers[2].dateOfBirth = withDob(3, 1988);
+}
+
+/** A couple of demo coupons and gift cards so Marketing isn't empty on first load. */
+function seedPromotions(db: Database, now: Date) {
+  const soon = addDays(now, 45).toISOString();
+  db.coupons = [
+    {
+      id: "cpn_welcome10",
+      code: "WELCOME10",
+      type: "PERCENT",
+      value: 10,
+      active: true,
+      redemptions: 0,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: "cpn_save50",
+      code: `SAVE50${db.settings.currency}`,
+      type: "FIXED",
+      value: 50,
+      active: true,
+      expiresAt: soon,
+      maxRedemptions: 20,
+      redemptions: 3,
+      createdAt: now.toISOString(),
+    },
+  ];
+  db.giftCards = [
+    {
+      id: "gc_demo1",
+      code: "GLOW-200",
+      initialValue: 200,
+      balance: 200,
+      active: true,
+      purchaserName: "Anonymous",
+      createdAt: now.toISOString(),
+    },
+    {
+      id: "gc_demo2",
+      code: "TREAT-100",
+      initialValue: 100,
+      balance: 40,
+      active: true,
+      purchaserName: "Julia Meyer",
+      createdAt: addDays(now, -20).toISOString(),
+    },
+  ];
 }
 
 function seedEmailLog(db: Database, now: Date): EmailMessage[] {

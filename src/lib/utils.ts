@@ -52,3 +52,31 @@ export function pick<T>(arr: T[], rnd: () => number): T {
 export function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
+
+function csvCell(v: unknown): string {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** Build a CSV string and trigger a browser download for it. */
+export function downloadCsv(
+  filename: string,
+  headers: string[],
+  rows: (string | number | undefined)[][],
+) {
+  if (typeof window === "undefined") return;
+  const lines = [headers, ...rows].map((row) =>
+    row.map(csvCell).join(","),
+  );
+  const blob = new Blob([lines.join("\r\n")], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

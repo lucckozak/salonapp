@@ -40,7 +40,7 @@ const PHASES: { id: Phase; label: string }[] = [
 ];
 
 export function BookingWizard() {
-  const { db, book, userById, createCustomer } = useStore();
+  const { db, book, userById, createCustomer, checkPromoCode } = useStore();
   const { user } = useAuth();
   const toast = useToast();
   const router = useRouter();
@@ -62,6 +62,13 @@ export function BookingWizard() {
   });
   const [confirmed, setConfirmed] = useState<string | null>(null);
   const [picker, setPicker] = useState<null | "service" | "specialist">(null);
+  const [promoInput, setPromoInput] = useState("");
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promo, setPromo] = useState<
+    | { kind: "coupon"; code: string; amount: number }
+    | { kind: "giftcard"; code: string; amount: number }
+    | null
+  >(null);
 
   const service = serviceId ? db.services.find((s) => s.id === serviceId) : null;
   const activeServices = db.services.filter((s) => s.active);
@@ -203,22 +210,57 @@ export function BookingWizard() {
     /.+@.+\..+/.test(details.email) &&
     details.phone.trim().length >= 6;
 
+  const priceDue = Math.max(0, (service?.price ?? 0) - (promo?.amount ?? 0));
+
+  function applyPromo() {
+    if (!service) return;
+    setPromoError(null);
+    const result = checkPromoCode(promoInput, service.price);
+    if (result.kind === "invalid") {
+      setPromoError(result.reason);
+      setPromo(null);
+      return;
+    }
+    if (result.kind === "coupon") {
+      setPromo({ kind: "coupon", code: result.coupon.code, amount: result.discount });
+      toast.success(`Code applied — ${formatPrice(result.discount, db.settings.currency)} off`);
+    } else {
+      setPromo({ kind: "giftcard", code: result.giftCard.code, amount: result.amount });
+      toast.success(`Gift card applied — ${formatPrice(result.amount, db.settings.currency)}`);
+    }
+  }
+
+  function clearPromo() {
+    setPromo(null);
+    setPromoInput("");
+    setPromoError(null);
+  }
+
   function handleConfirm() {
     if (!serviceId || !slotIso || !finalEmployeeId) return;
-    let customerId = user?.id ?? null;
-    if (!customerId) {
-      const existing = db.users.find(
-        (u) => u.email.toLowerCase() === details.email.trim().toLowerCase(),
+
+    const existing = user
+      ? user
+      : db.users.find(
+          (u) => u.email.toLowerCase() === details.email.trim().toLowerCase(),
+        );
+    if (existing?.blocked) {
+      toast.error(
+        "We can't complete this booking online",
+        "Please contact the salon directly to arrange your appointment.",
       );
-      customerId = existing
-        ? existing.id
-        : createCustomer({
-            firstName: details.firstName.trim(),
-            lastName: details.lastName.trim(),
-            email: details.email.trim(),
-            phone: details.phone.trim(),
-          }).id;
+      return;
     }
+
+    const customerId = existing
+      ? existing.id
+      : createCustomer({
+          firstName: details.firstName.trim(),
+          lastName: details.lastName.trim(),
+          email: details.email.trim(),
+          phone: details.phone.trim(),
+        }).id;
+
     const appt = book({
       customerId,
       employeeId: finalEmployeeId,
@@ -227,6 +269,10 @@ export function BookingWizard() {
       customerNotes: details.notes.trim() || undefined,
       source: "ONLINE",
       status: user ? "CONFIRMED" : "PENDING",
+      couponCode: promo?.kind === "coupon" ? promo.code : undefined,
+      discountAmount: promo?.kind === "coupon" ? promo.amount : undefined,
+      giftCardCode: promo?.kind === "giftcard" ? promo.code : undefined,
+      giftCardAmountUsed: promo?.kind === "giftcard" ? promo.amount : undefined,
     });
     setConfirmed(appt.id);
     toast.success("Appointment booked", "A confirmation email is on its way.");
@@ -263,7 +309,7 @@ export function BookingWizard() {
           />
           <Row
             label="Price"
-            value={formatPrice(service?.price ?? 0, db.settings.currency)}
+            value={formatPrice(priceDue, db.settings.currency)}
             last
           />
         </div>
@@ -499,6 +545,40 @@ export function BookingWizard() {
                   placeholder="Allergies, preferences, anything we should know…"
                 />
               </Field>
+
+              <Field
+                label="Promo code or gift card"
+                hint="Optional"
+                error={promoError ?? undefined}
+              >
+                {promo ? (
+                  <div className="flex items-center justify-between rounded-xl border border-success/40 bg-success-soft px-3.5 py-2.5 text-sm">
+                    <span className="font-medium text-success">
+                      {promo.code} applied — {formatPrice(promo.amount, db.settings.currency)}{" "}
+                      off
+                    </span>
+                    <button
+                      onClick={clearPromo}
+                      className="text-xs font-medium text-muted-strong underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      value={promoInput}
+                      onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                      placeholder="e.g. WELCOME10"
+                      className="uppercase"
+                    />
+                    <Button type="button" variant="outline" onClick={applyPromo}>
+                      Apply
+                    </Button>
+                  </div>
+                )}
+              </Field>
+
               {!user ? (
                 <p className="text-xs text-muted">
                   Already have an account?{" "}
@@ -605,13 +685,20 @@ export function BookingWizard() {
                   last={!details.notes}
                 />
                 {details.notes ? (
-                  <Row label="Notes" value={details.notes} last />
+                  <Row label="Notes" value={details.notes} last={!promo} />
+                ) : null}
+                {promo ? (
+                  <Row
+                    label={`${promo.kind === "coupon" ? "Coupon" : "Gift card"} · ${promo.code}`}
+                    value={`− ${formatPrice(promo.amount, db.settings.currency)}`}
+                    last
+                  />
                 ) : null}
               </div>
               <div className="flex items-center justify-between border-t border-border bg-surface-muted px-6 py-4">
                 <span className="text-sm text-muted">Total due at salon</span>
                 <span className="font-serif text-2xl text-primary">
-                  {formatPrice(service?.price ?? 0, db.settings.currency)}
+                  {formatPrice(priceDue, db.settings.currency)}
                 </span>
               </div>
             </div>

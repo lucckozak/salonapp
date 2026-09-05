@@ -7,6 +7,7 @@ import {
   ListChecks,
   Scissors,
   Settings,
+  Tag,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const NAV: NavItem[] = [
   { href: "/admin/employees", label: "Employees", icon: UsersRound },
   { href: "/admin/services", label: "Services", icon: Scissors },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/marketing", label: "Marketing", icon: Tag },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
